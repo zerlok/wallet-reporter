@@ -1,0 +1,97 @@
+[tool.poetry]
+name = "pywallet"
+version = "0.1.0"
+description = ""
+authors = ["zerlok <danil.troshnev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+pywallet = "pywallet.reporter:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.3"
+pydantic = "^2.10.6"
+yarl = "^1.18.3"
+selenium = "^4.28.1"
+no-log-tears = "^0.2.0"
+pydantic-settings = {version = "^2.7.1", extras = ["yaml"]}
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.7"
+mypy = "^1.15.0"
+
+
+[tool.ruff]
+target-version = "py312"
+include = ["src/**/*.py", "tests/**/*.py"]
+line-length = 120
+output-format = "pylint"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN", # because we use mypy
+    "D", # TODO: add docstrings to public code
+    "FA", # TODO: consider should we use __annotations__
+    "TD", # no task tracking
+    "FIX", # TODO: consider enable it against new code on pull requests
+    "COM812", # because ruff format suggests to skip it
+    "ISC001", # because ruff format suggests to skip it
+    "RET505", # clashes with mypy exhaustiveness check
+    "S101", # allow asserts for tests checks and mypy help
+]
+
+
+[tool.mypy]
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+disallow_any_expr = false
+disallow_any_explicit = false
+disallow_any_decorated = false
+
+strict = true
+disallow_any_unimported = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_unreachable = true
+strict_equality = true
+strict_optional = true
+enable_error_code = [
+    "redundant-self",
+    "redundant-expr",
+    "possibly-undefined",
+    "truthy-bool",
+    "truthy-iterable",
+    "ignore-without-code",
+    "unused-awaitable",
+    "explicit-override",
+    "mutable-override",
+    "unimported-reveal",
+    "narrowed-type-not-subtype",
+]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# NOTE: google.rpc doesn't have appropriate types
+#[[tool.mypy.overrides]]
+#module = ["google.rpc.*"]
+#ignore_missing_imports = true
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,5 @@
+formatters:
+  brief:
+    (): no_log_tears.formatter.SoftFormatter
+    fmt: "%(asctime)s %(levelname)-8s %(name)-30s %(self)-15s %(message)-60s %(__other__)s"
+    exclude: __base__
