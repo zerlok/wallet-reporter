@@ -49,15 +49,16 @@ def get_relative_date(value: date, kind: DatePeriodKind, n: int = 1) -> date:
 
 
 def date_range(start: date, end: date, step: timedelta | DatePeriodKind) -> t.Iterable[date]:
-    curr = start
-    while curr < end:
-        yield curr
+    s = start
 
-        if isinstance(step, timedelta):
-            curr += step
+    while True:
+        e = s + step if isinstance(step, timedelta) else get_relative_date(s, step)
 
-        else:
-            curr = get_relative_date(curr, step)
+        if e > end:
+            break
+
+        yield s
+        s = e
 
 
 def period_range(start: date, end: date, kind: DatePeriodKind) -> t.Iterable[DatePeriod]:

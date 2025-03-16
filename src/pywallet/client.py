@@ -9,15 +9,16 @@ from datetime import date, timedelta
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
+from time import sleep
 
+import tqdm
 from no_log_tears import LogMixin, get_logger
 from pydantic import BaseModel, Field, RootModel, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from selenium import webdriver
 from selenium.webdriver.chromium.options import ChromiumOptions
 from selenium.webdriver.chromium.webdriver import ChromiumDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.wait import WebDriverWait
 from yarl import URL
 
 from pywallet.date import DatePeriod
@@ -38,6 +39,8 @@ class ClientConfig(BaseModel):
     browser_headless: bool = True
     browser_data_dir: Path = Path.cwd() / ".local" / "pywallet" / "browser"
     browser_args: t.Sequence[str] = Field(default_factory=tuple)
+
+    login_progress: bool = True
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,26 +113,40 @@ class Client(LogMixin):
 
         log.info("cookies dumped")
 
-    def login(self, email: str, password: str) -> None:
-        log = self._log(email=email)
-        log.debug("trying to log in")
+    def login(self, email: str, password: str, *, progress: bool = False) -> None:
+        with tqdm.tqdm(desc="logging in", total=4, disable=not progress) as pb:
+            log = self._log(email=email)
+            log.debug("trying to log in")
 
-        self.__open_url("login")
+            self.__open_url("login")
+            log.debug("login page opened")
+            pb.update()
 
-        login_form = self.__driver.find_element(By.XPATH, "/html/body/div[1]/div/div/section/div/form")
-        if "Log In" not in login_form.text:
-            msg = "login form was not found"
-            raise RuntimeError(msg, login_form.text)
+            login_form = self.__driver.find_element(By.XPATH, "/html/body/div[1]/div/div/section/div/form")
+            if "Log In" not in login_form.text:
+                msg = "login form was not found"
+                raise RuntimeError(msg, login_form.text)
 
-        email_el = login_form.find_element(By.NAME, "email")
-        password_el = login_form.find_element(By.NAME, "password")
-        login_btn = login_form.find_element(By.XPATH, ".//button[@type='submit']")
+            email_el = login_form.find_element(By.NAME, "email")
+            password_el = login_form.find_element(By.NAME, "password")
+            login_btn = login_form.find_element(By.XPATH, ".//button[@type='submit']")
 
-        email_el.send_keys(email)
-        password_el.send_keys(password)
-        login_btn.click()
+            email_el.send_keys(email)
+            password_el.send_keys(password)
+            login_btn.click()
+            log.debug("login form filled")
+            pb.update()
 
-        log.info("logged in")
+            self.__driver.find_element(By.XPATH, "//*[text()='Synchronization']")
+            log.debug("loading")
+            pb.update()
+
+            self.__driver.find_element(By.XPATH, "//a[@href='/dashboard']")
+            username_span = self.__driver.find_element(
+                By.XPATH, "/html/body/div[1]/div/div/div[1]/div/div/div/div/div[1]/div[2]/span[1]"
+            )
+            log.info("logged in", username=username_span.text)
+            pb.update()
 
     def read_incomes_expenses_report_for_month(
         self,
@@ -139,9 +156,7 @@ class Client(LogMixin):
         log = self._log(month=month)
         log.debug("trying to read incomes expenses report for month")
 
-        analytics_btn = WebDriverWait(self.__driver, 30.0).until(
-            ec.presence_of_element_located((By.XPATH, "//a[@href='/analytics']"))
-        )
+        analytics_btn = self.__driver.find_element(By.XPATH, "//a[@href='/analytics']")
         analytics_btn.click()
 
         self.__analytics_select_incomes_expenses_report()
@@ -252,7 +267,11 @@ def create_client(config: ClientConfig) -> t.Iterator[Client]:
         client = Client(URL.build(host=config.budgetbackers_host), driver)
         log.debug("client was created", client=client)
 
-        client.login(config.budgetbackers_email, config.budgetbackers_password.get_secret_value())
+        client.login(
+            email=config.budgetbackers_email,
+            password=config.budgetbackers_password.get_secret_value(),
+            progress=config.login_progress,
+        )
 
         yield client
 
@@ -347,3 +366,15 @@ def create_safari_webdriver(config: ClientConfig) -> WebDriver:
         options.add_argument(arg)
 
     return webdriver.Safari(options=options)
+
+
+def main() -> None:
+    class ClientSettings(ClientConfig, BaseSettings):
+        model_config = SettingsConfigDict(env_file=".env")
+
+    with create_client(ClientSettings(browser_headless=False)):
+        sleep(60)
+
+
+if __name__ == "__main__":
+    main()

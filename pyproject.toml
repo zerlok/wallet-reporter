@@ -16,11 +16,13 @@ yarl = "^1.18.3"
 selenium = "^4.28.1"
 no-log-tears = "^0.2.0"
 pydantic-settings = {version = "^2.7.1", extras = ["yaml"]}
+tqdm = "^4.67.1"
 
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.7"
 mypy = "^1.15.0"
+types-tqdm = "^4.67.0.20250301"
 
 
 [tool.ruff]
