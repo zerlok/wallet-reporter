@@ -48,6 +48,11 @@ class CSVOptions(BaseModel):
 
 
 class PeriodOptions(BaseModel):
+    by: DatePeriodKind
+    last: int | None
+    since: date | None
+    period: tuple[date, date] | None
+
     @property
     def period_range(self) -> t.Iterable[DatePeriod]:
         if self.period is not None:
@@ -66,11 +71,6 @@ class PeriodOptions(BaseModel):
             msg = "invalid parameters"
             raise ValueError(msg, self)
 
-    by: DatePeriodKind
-    last: int | None
-    since: date | None
-    period: tuple[date, date] | None
-
 
 class IncomesExpensesTableByPeriodsOptions(BaseOptions, PeriodOptions, CSVOptions):
     filter: str | None
@@ -86,7 +86,12 @@ class CLIOptions(RootModel[ReportOptions]):
 def build_parser() -> ArgumentParser:
     def parse_date_period(value: str) -> tuple[date, date]:
         start_value, _, end_value = value.partition(":")
-        return date.fromisoformat(start_value), date.fromisoformat(end_value)
+        start, end = date.fromisoformat(start_value), date.fromisoformat(end_value)
+        if end <= start:
+            msg = "invalid date period, end should be greater than start"
+            raise ValueError(msg, start, end)
+
+        return start, end
 
     parser = ArgumentParser(description="Get reports from https://web.budgetbakers.com site.")
     parser.add_argument(
