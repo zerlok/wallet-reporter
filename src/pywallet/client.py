@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import typing as t
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -310,7 +311,8 @@ def create_firefox_webdriver(config: ClientConfig) -> WebDriver:
         options.add_argument("--headless")
     for arg in config.browser_args:
         options.add_argument(arg)
-    return webdriver.Firefox(options=options)
+    service = webdriver.FirefoxService(executable_path=shutil.which("geckodriver"))
+    return webdriver.Firefox(options=options, service=service)
 
 
 def create_chrome_webdriver(config: ClientConfig) -> WebDriver:
