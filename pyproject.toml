@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.scripts]
 pywallet = "pywallet.reporter:main"
+report-convert = "pywallet.converter:main"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -17,6 +18,8 @@ selenium = "^4.28.1"
 no-log-tears = "^0.2.0"
 pydantic-settings = {version = "^2.7.1", extras = ["yaml"]}
 tqdm = "^4.67.1"
+tabula-py = "^2.10.0"
+pdfplumber = "^0.11.7"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -43,6 +46,7 @@ ignore = [
     "ISC001", # because ruff format suggests to skip it
     "RET505", # clashes with mypy exhaustiveness check
     "S101", # allow asserts for tests checks and mypy help
+    "A005",
 ]
 
 
